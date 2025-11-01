@@ -1,0 +1,22 @@
+name = "bottcher"
+defaultTargets = ["Bottcher"]
+
+[leanOptions]
+pp.unicode.fun = true
+autoImplicit = false
+relaxedAutoImplicit = false
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+
+[[require]]
+name = "ray"
+scope = "girving"
+
+[[require]]
+name = "series"
+scope = "girving"
+
+[[lean_lib]]
+name = "Bottcher"
