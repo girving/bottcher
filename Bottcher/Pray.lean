@@ -6,6 +6,8 @@ import Series.Series.Sqrt
 
 /-!
 # Power series computation of `pray` via `cascade`
+
+I couldn't resist naming it `spray`, for `Series.spray` (`pray` is also one letter atop `ray`).
 -/
 
 open Function (uncurry)
@@ -143,10 +145,12 @@ lemma deriv_descent : deriv (fun p ↦ descent k n 0 p f) 1 = 0 := by
 variable {α : Type} [SeriesScalar α] [ApproxSeries α ℂ] [Div2 α] [ApproxDiv2 α ℂ]
 
 /-- `Series` computation of `descent` and `descent_p` -/
-def Series.descent (k n : ℕ) (p : Series α) (f : ℕ) : Series α × Series α := match f with
-  | 0 => (.withOrder 1 k, .withOrder 0 k)
+def Series.descent (k n : ℕ) (p : Series α) (f : ℕ) : Series α × Series α :=
+  let o := p.order.toNat
+  match f with
+  | 0 => (.withOrder 1 o, .withOrder 0 o)
   | f + 1 =>
-    if k < 2 ^ n then (.withOrder 1 k, .withOrder 0 k) else
+    if k < 2 ^ n then (.withOrder 1 o, .withOrder 0 o) else
     let s := 2 ^ (n + 1) - 1
     let (a, da) := p.descent k (n + 1) f
     let b := sqrt (a - p <<< s)
@@ -163,19 +167,21 @@ omit [Div2 α] in
     iteratedDeriv_cascade (trans lt le), smul_eq_mul, mul_ite, mul_one, mul_zero]
   split_ifs with h <;> simp [h]
 
-@[approx] lemma approx_descent {p : Series α} {p' : ℂ → ℂ} (ap : approx p p') (fuel : k - n ≤ f) :
+@[approx] lemma approx_descent {p : Series α} {p' : ℂ → ℂ} (ap : approx p p')
+    (fuel : k - n ≤ f) (pk : p.order.toNat ≤ k) :
     approx (p.descent k n f).1 (fun z ↦ descent k n z (p' z) f) := by
-  induction' f with f h generalizing n
+  induction' f with f h generalizing n k
   · simp only [descent, Series.descent]
     simp only [nonpos_iff_eq_zero, Nat.sub_eq_zero_iff_le] at fuel
-    exact approx_one_cascade (le_trans fuel Nat.lt_two_pow_self.le)
+    exact approx_one_cascade (le_trans (by order) Nat.lt_two_pow_self.le)
   · simp only [Series.descent, descent]
     split_ifs with kn
     · exact approx_one_cascade (by omega)
     · refine Series.approx_sqrt ?_ (by simp [Nat.sub_eq_zero_iff_le])
-      exact approx_sub (h (by omega)) (by approx)
+      exact approx_sub (h (by omega) pk) (by approx)
 
-@[approx] lemma approx_descent_p {p : Series α} {p' : ℂ → ℂ} (ap : approx p p') (fuel : k - n ≤ f) :
+@[approx] lemma approx_descent_p {p : Series α} {p' : ℂ → ℂ} (ap : approx p p')
+    (fuel : k - n ≤ f) (pk : p.order.toNat ≤ k) :
     approx (p.descent k n f).2 (fun z ↦ descent_p k n z (p' z) f) := by
   induction' f with f h generalizing n
   · exact Series.approx_withOrder approx_zero (by simp)
@@ -186,4 +192,76 @@ omit [Div2 α] in
       simp only [← div2_eq_mul]
       refine approx_div2 (approx_mul (approx_sub (h (by omega)) (by approx)) ?_)
       refine Series.approx_inv ?_ (by simp) (by simp)
-      simpa only [descent, kn, ↓reduceIte, Series.descent] using approx_descent ap fuel
+      simpa only [descent, kn, ↓reduceIte, Series.descent] using approx_descent ap fuel pk
+
+section Order
+omit [Fact (2 ≤ 2)] [ApproxSeries α ℂ] [ApproxDiv2 α ℂ]
+
+@[simp] lemma order_descent {p : Series α} : (p.descent k n f).1.order = p.order.toNat := by
+ induction' f with f h generalizing n
+ · simp [Series.descent]
+ · simp [Series.descent, apply_ite, h, min_eq_left (ENat.coe_toNat_le_self _)]
+
+@[simp] lemma order_descent_p {p : Series α} : (p.descent k n f).2.order = p.order.toNat := by
+ induction' f with f h generalizing n
+ · simp [Series.descent]
+ · simp [Series.descent, apply_ite, h, min_eq_left (ENat.coe_toNat_le_self _), order_descent]
+end Order
+
+/-!
+### Newton's method for `pray` using `descent`
+-/
+
+/-- Newton solvers for `pray` using `descent` -/
+def pray_newton (k : ℕ) : Newton α where
+  order := k
+  start := 1
+  step p :=
+    let (a, da) := p.descent k 0 k
+    p - (p - a) * (1 - da).inv 1
+  order_step p le := by simp [ENat.coe_toNat (ENat.ne_top_of_lt le)]
+
+/-- `pray_newton` is correct! -/
+lemma valid_pray_newton (k : ℕ) :
+    (pray_newton k : Newton α).Valid (fun z p : ℂ ↦ p - descent k 0 z p k) 0 1 where
+  df := contDiffAt_snd.sub contDiffAt_descent
+  dy := contDiffAt_const
+  fc := by simp
+  f0 := by simp
+  start := by simp [pray_newton]
+  step {p p'} p'0 a po le := by
+    simp only [pray_newton] at le
+    have pk : p.order.toNat ≤ k := by
+      rwa [← ENat.coe_toNat (ENat.ne_top_of_lt le), ENat.coe_le_coe] at le
+    refine approx_sub a (approx_mul ?_ ?_)
+    · simp only [Pi.zero_apply, sub_zero]
+      exact approx_sub a (approx_descent a (by omega) pk)
+    · have de : ∀ᶠ z in 𝓝 0, deriv (fun p ↦ p - descent k 0 z p k) (p' z) =
+          1 - descent_p k 0 z (p' z) k := by
+        have t : ContinuousAt (fun z ↦ (z, p' z)) 0 := by
+          have pc := (a 0 (by norm_cast; apply bot_lt_iff_ne_bot.mpr; omega)).1.continuousAt
+          fun_prop
+        simp only [ContinuousAt, p'0] at t
+        filter_upwards [t.eventually (hasDerivAt_descent (k := k) (n := 0) (f := k))] with z d
+        rw [deriv_fun_sub (by fun_prop) d.differentiableAt, deriv_id'', d.deriv]
+      refine Series.approx_inv ?_ (by simp) (by simp)
+      refine Series.congr_right_of_eventuallyEq ?_ de
+      exact approx_sub approx_one (approx_descent_p a (by omega) pk)
+
+omit [Fact (2 ≤ 2)] [ApproxSeries α ℂ] [ApproxDiv2 α ℂ] in
+/-- Series computation of `pray` -/
+def spray (k : ℕ) : Series α :=
+  (pray_newton k).solve k
+
+/-- `spray` approximates the Mandelbrot Böttcher series -/
+@[approx] lemma approx_spray (k : ℕ) : approx (spray k : Series α) (pray 2) := by
+  apply (valid_pray_newton k).approx_exact
+  · simp only [pray_newton, le_refl]
+  · simp only [pray_zero]
+  · intro i lt
+    exact (pray_analytic (by simp)).of_le le_top
+  · refine SeriesEq.congr_left (f := 0) (SeriesEq.refl ?_) ?_
+    · intro i lt
+      exact contDiffAt_const
+    · filter_upwards [descent_eq_pray (k := k)] with z e
+      aesop
