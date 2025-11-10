@@ -21,7 +21,7 @@ instance : Repr Dyadic where
   | .ofOdd n s _ => toString n ++ "p" ++ toString (-s)
 
 /-!
-### Dyadic rationals admit division by 2
+### Dyadic rational basics
 -/
 
 instance : Div2 Dyadic where
