@@ -1,6 +1,3 @@
-import Interval.Approx
-import Mathlib.Data.Complex.Basic
-import Series.Series.Basic
 import Series.Series.Div2
 
 /-!
