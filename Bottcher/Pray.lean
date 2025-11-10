@@ -14,6 +14,7 @@ open Function (uncurry)
 open scoped Topology
 variable {d n k f : ℕ} {m : WithTop ℕ∞} [d2 : Fact (2 ≤ d)]
 variable {z p : ℂ}
+local instance : Fact (2 ≤ 2) := ⟨by norm_num⟩
 
 /-!
 ### Facts about `cascade`
@@ -42,9 +43,6 @@ lemma deriv_cascade (n0 : n ≠ 0) : deriv (cascade d n) 0 = 0 := by
 TODO: We could use `k ≤ 2 ^ (n + 1) - 2` instead of `2 ^ n - 1` in `descent` with a bit more work,
 which would save ~one iteration in the `descent` loop.
 -/
-
--- From here on, we fix `d = 2`
-variable [Fact (2 ≤ 2)]
 
 /-- `descent z (pray 2 z) k n (k + 1) = pray 2 z`, expressing low-`n` cascade values via higher -/
 noncomputable def descent (k n : ℕ) (z p : ℂ) (f : ℕ) : ℂ := match f with
@@ -195,7 +193,7 @@ omit [Div2 α] in
       simpa only [descent, kn, ↓reduceIte, Series.descent] using approx_descent ap fuel pk
 
 section Order
-omit [Fact (2 ≤ 2)] [ApproxSeries α ℂ] [ApproxDiv2 α ℂ]
+omit [ApproxSeries α ℂ] [ApproxDiv2 α ℂ]
 
 @[simp] lemma order_descent {p : Series α} : (p.descent k n f).1.order = p.order.toNat := by
  induction' f with f h generalizing n
@@ -248,7 +246,7 @@ lemma valid_pray_newton (k : ℕ) :
       refine Series.congr_right_of_eventuallyEq ?_ de
       exact approx_sub approx_one (approx_descent_p a (by omega) pk)
 
-omit [Fact (2 ≤ 2)] [ApproxSeries α ℂ] [ApproxDiv2 α ℂ] in
+omit [ApproxSeries α ℂ] [ApproxDiv2 α ℂ] in
 /-- Series computation of `pray` -/
 def spray (k : ℕ) : Series α :=
   (pray_newton k).solve k
