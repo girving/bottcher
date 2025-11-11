@@ -19,6 +19,9 @@ class ApproxNormSq (α 𝕜 : Type) [NormSq α] [NontriviallyNormedField 𝕜] [
     [Approx α ℝ] where
   approx_normSq {x : α} {x' : 𝕜} (ax : approx x x') : approx (NormSq.normSq x) (‖x'‖ ^ 2)
 
+export ApproxNormSq (approx_normSq)
+attribute [approx] approx_normSq
+
 instance Rat.instApproxNormSq : ApproxNormSq ℚ ℂ where
   approx_normSq {x x'} ax := by
     simp only [approx] at ax

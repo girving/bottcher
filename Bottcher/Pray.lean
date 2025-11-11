@@ -263,3 +263,8 @@ def spray (k : ℕ) : Series α :=
       exact contDiffAt_const
     · filter_upwards [descent_eq_pray (k := k)] with z e
       aesop
+
+omit [ApproxSeries α ℂ] [ApproxDiv2 α ℂ] in
+@[simp] lemma order_spray (k : ℕ) : (spray k : Series α).order = k := by
+  rw [spray, Newton.order_solve]
+  simp only [pray_newton, le_refl]

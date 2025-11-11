@@ -2,6 +2,7 @@ import Bottcher.Dyadic
 import Bottcher.NormSq
 import Bottcher.Pray
 import Bottcher.Rat
+import Bottcher.Sum
 import Ray.Dynamics.Mandelbrot
 import Ray.Dynamics.Multibrot.Area
 
@@ -14,8 +15,6 @@ open scoped Real
 
 variable {n : ℕ}
 local instance : Fact (2 ≤ 2) := ⟨by norm_num⟩
-variable {α : Type} [SeriesScalar α] [ApproxSeries α ℂ] [Div2 α] [ApproxDiv2 α ℂ] [NormSq α]
-variable {𝕜 : Type} [NontriviallyNormedField 𝕜]
 
 /-!
 ### Mandelbrot area upper bound, in rational form
@@ -41,6 +40,24 @@ lemma area_mandelbrot_le_upper (n0 : n ≠ 0) : volume.real mandelbrot ≤ π * 
 ### Series approximation of `upper`
 -/
 
+variable {α : Type} [SeriesScalar α] [ApproxSeries α ℝ] [ApproxSeries α ℂ] [Div2 α] [ApproxDiv2 α ℂ]
+  [NormSq α] [ApproxNormSq α ℂ]
+
 /-- Series approximation of `upper` -/
 def supper (n : ℕ) : α :=
-  ((spray n).c.mapIdx fun k (x : α) ↦ (1 - k) * NormSq.normSq x).sum
+  (spray n).sum fun k (x : α) ↦ (1 - k) * NormSq.normSq x
+
+/-- `supper n` approximates `upper n` -/
+lemma approx_supper (n : ℕ) : approx (supper n : α) (upper n) := by
+  apply Series.approx_sum (g' := fun k x ↦ (1 - k) * ‖x‖ ^ 2)
+  · approx
+  · simp
+  · simp
+  · approx
+
+/-- Specialisation to the dyadic rational case -/
+lemma area_mandelbrot_le_supper (n0 : n ≠ 0) :
+    volume.real mandelbrot ≤ π * (supper n : Dyadic).toRat := by
+  have e := approx_supper n (α := Dyadic)
+  simp only [approx] at e
+  simp only [e, area_mandelbrot_le_upper n0]
