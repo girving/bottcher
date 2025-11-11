@@ -7,7 +7,7 @@ Verified computation of the [Böttcher series](https://en.wikipedia.org/wiki/B%C
 
 1. [ray](https://github.com/girving/ray): Definitions and basic results about complex dynamics, including Böttcher coordinates and the connectivity of the Mandelbrot set.
 2. [interval](https://github.com/girving/interval): Conservative interval arithmetic using software floating point.
-3. [series](https://github.com/girving/interval): Conservative power series arithmetic.
+3. [series](https://github.com/girving/series): Conservative power series arithmetic.
 
 All of which of course build on top of the wonderful [mathlib](https://github.com/leanprover-community/mathlib4) base!
 
