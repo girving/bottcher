@@ -1,8 +1,7 @@
-import Batteries.Data.Rat.Float
 import Bottcher.Area
-import Bottcher.Dyadic
 import Bottcher.Pray
-import Bottcher.Rat
+import Series.Series.Dyadic
+import Series.Series.Rat
 
 /-!
 # Actual computation of the Böttcher series for the Mandelbrot set

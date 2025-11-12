@@ -1,10 +1,10 @@
-import Bottcher.Dyadic
-import Bottcher.NormSq
 import Bottcher.Pray
-import Bottcher.Rat
-import Bottcher.Sum
+import Interval.Approx.NormSq
 import Ray.Dynamics.Mandelbrot
 import Ray.Dynamics.Multibrot.Area
+import Series.Series.Dyadic
+import Series.Series.Rat
+import Series.Series.Sum
 
 /-!
 # Upper bounds on the area of the Mandelbrot set
