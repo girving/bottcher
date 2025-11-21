@@ -140,33 +140,34 @@ lemma deriv_descent : deriv (fun p ↦ descent k n 0 p f) 1 = 0 := by
 ### Series computation of `descent` and `descent_p`
 -/
 
-variable {α : Type} [SeriesScalar α] [ApproxSeries α ℂ] [Div2 α] [ApproxDiv2 α ℂ]
+variable {α : Type} [SeriesScalar α] [ApproxSeries α ℂ] [Div2 α] [Div2Zero α] [ApproxDiv2 α ℂ]
 
 /-- `Series` computation of `descent` and `descent_p` -/
 def Series.descent (k n : ℕ) (p : Series α) (f : ℕ) : Series α × Series α :=
-  let o := p.order.toNat
+  let o := p.order
   match f with
-  | 0 => (.withOrder 1 o, .withOrder 0 o)
+  | 0 => (.const 1 o, .const 0 o)
   | f + 1 =>
-    if k < 2 ^ n then (.withOrder 1 o, .withOrder 0 o) else
+    if k < 2 ^ n then (.const 1 o, .const 0 o) else
     let s := 2 ^ (n + 1) - 1
     let (a, da) := p.descent k (n + 1) f
     let b := sqrt (a - p <<< s)
-    let db := div2 ((da - (1 : Series α) <<< s) * b.inv 1)
+    let db := div2 ((da - (const 1 o : Series α) <<< s) * b.inv 1)
     (b, db)
 
 omit [Div2 α] in
 @[approx] lemma approx_one_cascade (le : k ≤ 2 ^ n) :
-    approx (.withOrder 1 k : Series α) (cascade 2 n) := by
+    approx (.const 1 k : Series α) (cascade 2 n) := by
   intro i lt
-  simp only [Series.order_withOrder, Nat.cast_lt] at lt
+  simp only [Series.order_const] at lt
   refine ⟨(cascade_analytic (by simp)).of_le le_top, ?_⟩
-  simp only [Series.extend_withOrder, Nat.cast_lt, lt, ↓reduceIte, Series.extend_one, series_coeff,
-    iteratedDeriv_cascade (trans lt le), smul_eq_mul, mul_ite, mul_one, mul_zero]
-  split_ifs with h <;> simp [h]
+  simp only [Series.extend_const, ne_eq, series_coeff, iteratedDeriv_cascade (trans lt le),
+    smul_eq_mul, mul_ite, mul_one, mul_zero]
+  split_ifs with h <;> try omega
+  all_goals simp_all
 
 @[approx] lemma approx_descent {p : Series α} {p' : ℂ → ℂ} (ap : approx p p')
-    (fuel : k - n ≤ f) (pk : p.order.toNat ≤ k) :
+    (fuel : k - n ≤ f) (pk : p.order ≤ k) :
     approx (p.descent k n f).1 (fun z ↦ descent k n z (p' z) f) := by
   induction' f with f h generalizing n k
   · simp only [descent, Series.descent]
@@ -179,13 +180,13 @@ omit [Div2 α] in
       exact approx_sub (h (by omega) pk) (by approx)
 
 @[approx] lemma approx_descent_p {p : Series α} {p' : ℂ → ℂ} (ap : approx p p')
-    (fuel : k - n ≤ f) (pk : p.order.toNat ≤ k) :
+    (fuel : k - n ≤ f) (pk : p.order ≤ k) :
     approx (p.descent k n f).2 (fun z ↦ descent_p k n z (p' z) f) := by
   induction' f with f h generalizing n
-  · exact Series.approx_withOrder approx_zero (by simp)
+  · exact Series.approx_zero
   · simp only [Series.descent, descent_p]
     split_ifs with kn
-    · exact Series.approx_withOrder approx_zero (by simp)
+    · exact Series.approx_zero
     · simp only [div_eq_mul_inv, mul_inv, ← mul_assoc _ _⁻¹, mul_comm _ (2 : ℂ)⁻¹, mul_assoc _⁻¹]
       simp only [← div2_eq_mul]
       refine approx_div2 (approx_mul (approx_sub (h (by omega)) (by approx)) ?_)
@@ -195,15 +196,17 @@ omit [Div2 α] in
 section Order
 omit [ApproxSeries α ℂ] [ApproxDiv2 α ℂ]
 
-@[simp] lemma order_descent {p : Series α} : (p.descent k n f).1.order = p.order.toNat := by
+omit [Div2Zero α] in
+@[simp] lemma order_descent {p : Series α} : (p.descent k n f).1.order = p.order := by
  induction' f with f h generalizing n
  · simp [Series.descent]
- · simp [Series.descent, apply_ite, h, min_eq_left (ENat.coe_toNat_le_self _)]
+ · simp [Series.descent, apply_ite, h]
 
-@[simp] lemma order_descent_p {p : Series α} : (p.descent k n f).2.order = p.order.toNat := by
+omit [Div2Zero α] in
+@[simp] lemma order_descent_p {p : Series α} : (p.descent k n f).2.order = p.order := by
  induction' f with f h generalizing n
  · simp [Series.descent]
- · simp [Series.descent, apply_ite, h, min_eq_left (ENat.coe_toNat_le_self _), order_descent]
+ · simp [Series.descent, apply_ite, h, order_descent]
 end Order
 
 /-!
@@ -216,8 +219,8 @@ def pray_newton (k : ℕ) : Newton α where
   start := 1
   step p :=
     let (a, da) := p.descent k 0 k
-    p - (p - a) * (1 - da).inv 1
-  order_step p le := by simp [ENat.coe_toNat (ENat.ne_top_of_lt le)]
+    p - (p - a) * (.const 1 k - da).inv 1
+  order_step p le := by simp [le]
 
 /-- `pray_newton` is correct! -/
 lemma valid_pray_newton (k : ℕ) :
@@ -229,22 +232,20 @@ lemma valid_pray_newton (k : ℕ) :
   start := by simp [pray_newton]
   step {p p'} p'0 a po le := by
     simp only [pray_newton] at le
-    have pk : p.order.toNat ≤ k := by
-      rwa [← ENat.coe_toNat (ENat.ne_top_of_lt le), ENat.coe_le_coe] at le
     refine approx_sub a (approx_mul ?_ ?_)
     · simp only [Pi.zero_apply, sub_zero]
-      exact approx_sub a (approx_descent a (by omega) pk)
+      exact approx_sub a (approx_descent a (by omega) le)
     · have de : ∀ᶠ z in 𝓝 0, deriv (fun p ↦ p - descent k 0 z p k) (p' z) =
           1 - descent_p k 0 z (p' z) k := by
         have t : ContinuousAt (fun z ↦ (z, p' z)) 0 := by
-          have pc := (a 0 (by norm_cast; apply bot_lt_iff_ne_bot.mpr; omega)).1.continuousAt
+          have pc := (a 0 (by omega)).1.continuousAt
           fun_prop
         simp only [ContinuousAt, p'0] at t
         filter_upwards [t.eventually (hasDerivAt_descent (k := k) (n := 0) (f := k))] with z d
         rw [deriv_fun_sub (by fun_prop) d.differentiableAt, deriv_id'', d.deriv]
       refine Series.approx_inv ?_ (by simp) (by simp)
       refine Series.congr_right_of_eventuallyEq ?_ de
-      exact approx_sub approx_one (approx_descent_p a (by omega) pk)
+      exact approx_sub Series.approx_one (approx_descent_p a (by omega) le)
 
 omit [ApproxSeries α ℂ] [ApproxDiv2 α ℂ] in
 /-- Series computation of `pray` -/
@@ -264,7 +265,7 @@ def spray (k : ℕ) : Series α :=
     · filter_upwards [descent_eq_pray (k := k)] with z e
       aesop
 
-omit [ApproxSeries α ℂ] [ApproxDiv2 α ℂ] in
+omit [ApproxSeries α ℂ] [ApproxDiv2 α ℂ] [Div2Zero α] in
 @[simp] lemma order_spray (k : ℕ) : (spray k : Series α).order = k := by
   rw [spray, Newton.order_solve]
   simp only [pray_newton, le_refl]

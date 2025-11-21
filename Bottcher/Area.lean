@@ -40,8 +40,8 @@ lemma area_mandelbrot_le_upper (n0 : n ≠ 0) : volume.real mandelbrot ≤ π * 
 ### Series approximation of `upper`
 -/
 
-variable {α : Type} [SeriesScalar α] [ApproxSeries α ℝ] [ApproxSeries α ℂ] [Div2 α] [ApproxDiv2 α ℂ]
-  [NormSq α] [ApproxNormSq α ℂ]
+variable {α : Type} [SeriesScalar α] [ApproxSeries α ℝ] [ApproxSeries α ℂ] [Div2 α] [Div2Zero α]
+  [ApproxDiv2 α ℂ] [NormSq α] [ApproxNormSq α ℂ]
 
 /-- Series approximation of `upper` -/
 def supper (n : ℕ) : α :=
