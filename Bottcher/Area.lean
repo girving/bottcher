@@ -1,8 +1,9 @@
 import Bottcher.Pray
-import Interval.Approx.NormSq
+import Interval.Interval.Pi
 import Ray.Dynamics.Mandelbrot
 import Ray.Dynamics.Multibrot.Area
 import Series.Series.Dyadic
+import Series.Series.Interval
 import Series.Series.Rat
 import Series.Series.Sum
 
@@ -48,7 +49,7 @@ def supper (n : ℕ) : α :=
   (spray n).sum fun k (x : α) ↦ (1 - k) * NormSq.normSq x
 
 /-- `supper n` approximates `upper n` -/
-lemma approx_supper (n : ℕ) : approx (supper n : α) (upper n) := by
+@[approx] lemma approx_supper (n : ℕ) : approx (supper n : α) (upper n) := by
   apply Series.approx_sum (g' := fun k x ↦ (1 - k) * ‖x‖ ^ 2)
   · approx
   · simp
@@ -56,8 +57,18 @@ lemma approx_supper (n : ℕ) : approx (supper n : α) (upper n) := by
   · approx
 
 /-- Specialisation to the dyadic rational case -/
-lemma area_mandelbrot_le_supper (n0 : n ≠ 0) :
+lemma area_mandelbrot_le_supper_dyadic (n0 : n ≠ 0) :
     volume.real mandelbrot ≤ π * (supper n : Dyadic).toRat := by
   have e := approx_supper n (α := Dyadic)
   simp only [approx] at e
   simp only [e, area_mandelbrot_le_upper n0]
+
+/-- Specialisation to the `Interval` case -/
+lemma area_mandelbrot_le_supper_interval (n0 : n ≠ 0) :
+    approx (0 ∪ .pi * supper n : Interval) (volume.real mandelbrot) := by
+  have a : approx (.pi * supper n : Interval) (π * upper n) := by approx
+  have le := area_mandelbrot_le_upper n0
+  by_cases n : Interval.pi * supper n = nan
+  · simp [n]
+  · simp [approx, n] at a ⊢
+    grind

@@ -19,7 +19,7 @@ lemma spray_10 : (spray 10 : Series ℚ).c =
 
 /-- An (very weak!) upper bound on the area of the Mandelbrot set -/
 lemma area_mandelbrot_le : volume.real mandelbrot ≤ 0.63006 * π := by
-  refine le_trans (area_mandelbrot_le_supper (n := 256) (by norm_num)) ?_
+  refine le_trans (area_mandelbrot_le_supper_dyadic (n := 256) (by norm_num)) ?_
   simp only [mul_comm π, mul_le_mul_iff_of_pos_right Real.pi_pos,
     (by norm_num : (0.63006 : ℝ) = (0.63006 : ℚ)), Rat.cast_le]
   native_decide
